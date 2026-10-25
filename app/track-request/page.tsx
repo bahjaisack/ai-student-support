@@ -360,7 +360,7 @@ export default function TrackRequestPage() {
             </time>
           </div>
 
-          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-slate-200">
+          <p className="mt-3 whitespace-pre-wrap wrap-break-word text-sm leading-7 text-slate-200">
             {reply.message}
           </p>
         </article>

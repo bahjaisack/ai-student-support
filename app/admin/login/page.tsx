@@ -38,7 +38,6 @@ export default function AdminLoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#101114] px-4 py-10 text-[#f5f5f5]">
       <section className="w-full max-w-md rounded-2xl border border-white/10 bg-[#17181d] p-6 shadow-2xl shadow-black/20 sm:p-8">
-        {/* Logo */}
        
          
 

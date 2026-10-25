@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         {
           success: false,
           error:
-            "Enter a valid name, email, category, and description (10–2000 characters).",
+            "Enter a valid name, email, category, and description (10-2000 characters).",
         },
         { status: 400 }
       );

@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { verifyAdminSession } from "@/lib/admin-session";
@@ -24,7 +23,6 @@ export async function POST(
   { params }: RouteContext
 ) {
   try {
-    // 1. Verify that the admin is logged in.
     const isAdmin = await verifyAdminSession(request);
 
     if (!isAdmin) {
@@ -34,7 +32,6 @@ export async function POST(
       );
     }
 
-    // 2. Validate the request reference.
     const { reference: rawReference } = await params;
     const reference = rawReference.trim().toUpperCase();
 
@@ -45,7 +42,6 @@ export async function POST(
       );
     }
 
-    // 3. Read and validate the reply.
     const body = await request.json();
 
     const message =
@@ -61,11 +57,9 @@ export async function POST(
       );
     }
 
-    // 4. Connect to MongoDB.
     const client = await clientPromise;
     const db = client.db("dugsiiye_support");
 
-    // 5. Save the reply to the matching support request.
  
 const supportRequests = db.collection("support_requests");
 

@@ -1,4 +1,3 @@
-
 import { MongoClient } from "mongodb";
 
 const uri = process.env.MONGODB_URI;
@@ -13,7 +12,6 @@ let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
 declare global {
-  // Reuse the connection during Next.js development reloads.
   var mongoClientPromise: Promise<MongoClient> | undefined;
 }
 

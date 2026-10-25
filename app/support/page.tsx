@@ -124,7 +124,7 @@ export default function SupportPage() {
 
             <p className="mt-3 text-sm leading-6 text-[#a3a6b0] sm:text-base">
               Tell us about your issue and submit a support request.
-              We’ll provide a reference number you can use to track it.
+              We'll provide a reference number you can use to track it.
             </p>
           </div>
 

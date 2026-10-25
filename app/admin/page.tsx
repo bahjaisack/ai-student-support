@@ -79,146 +79,138 @@ export default function AdminDashboard() {
     void loadRequests();
   }, [loadRequests]);
 
-async function sendReply(reference: string) {
-  const message = (replyDrafts[reference] || "").trim();
+  async function sendReply(reference: string) {
+    const message = (replyDrafts[reference] || "").trim();
 
-  if (!message) {
-    setReplyFeedback((previous) => ({
-      ...previous,
-      [reference]: {
-        success: false,
-        message: "Please enter a reply first.",
-      },
-    }));
-    return;
-  }
+    if (!message) {
+      setReplyFeedback((previous) => ({
+        ...previous,
+        [reference]: {
+          success: false,
+          message: "Please enter a reply first.",
+        },
+      }));
+      return;
+    }
 
-  if (message.length > 5000) {
-    
-setReplyFeedback((previous) => ({
-  ...previous,
-  [reference]: {
-    success: true,
-    message: "Reply saved successfully.",
-  },
-}));
+    if (message.length > 5000) {
+      setReplyFeedback((previous) => ({
+        ...previous,
+        [reference]: {
+          success: true,
+          message: "Reply saved successfully.",
+        },
+      }));
 
-// Display the new reply immediately without reloading the table.
-const newReply: SupportReply = {
-  message,
-  sender: "Admin",
-  createdAt: new Date().toISOString(),
-};
+   
+      const newReply: SupportReply = {
+        message,
+        sender: "Admin",
+        createdAt: new Date().toISOString(),
+      };
 
-setRequests((previous) =>
-  previous.map((request) =>
-    request.reference === reference
-      ? {
-          ...request,
-          replies: [...(request.replies || []), newReply],
-        }
-      : request,
-  ),
-);
+      setRequests((previous) =>
+        previous.map((request) =>
+          request.reference === reference
+            ? {
+                ...request,
+                replies: [...(request.replies || []), newReply],
+              }
+            : request,
+        ),
+      );
 
-    return;
-  }
+      return;
+    }
 
-  setSendingReference(reference);
-  setReplyFeedback((previous) => {
-    const next = { ...previous };
-    delete next[reference];
-    return next;
-  });
+    setSendingReference(reference);
+    setReplyFeedback((previous) => {
+      const next = { ...previous };
+      delete next[reference];
+      return next;
+    });
 
-  try {
-    const response = await fetch(
-      `/api/admin/requests/${encodeURIComponent(reference)}/reply`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+    try {
+      const response = await fetch(
+        `/api/admin/requests/${encodeURIComponent(reference)}/reply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        },
+      );
+
+      if (response.status === 401) {
+        window.location.href = "/admin/login";
+        return;
       }
-    );
 
-    if (response.status === 401) {
-      window.location.href = "/admin/login";
-      return;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send reply.");
+      }
+
+      setReplyDrafts((previous) => ({
+        ...previous,
+        [reference]: "",
+      }));
+
+      setReplyFeedback((previous) => ({
+        ...previous,
+        [reference]: {
+          success: true,
+          message: "Reply saved successfully.",
+        },
+      }));
+
+      await loadRequests();
+    } catch (err) {
+      setReplyFeedback((previous) => ({
+        ...previous,
+        [reference]: {
+          success: false,
+          message: err instanceof Error ? err.message : "Unable to send reply.",
+        },
+      }));
+    } finally {
+      setSendingReference("");
     }
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to send reply.");
-    }
-
-    setReplyDrafts((previous) => ({
-      ...previous,
-      [reference]: "",
-    }));
-
-    setReplyFeedback((previous) => ({
-      ...previous,
-      [reference]: {
-        success: true,
-        message: "Reply saved successfully.",
-      },
-    }));
-
-    await loadRequests();
-  } catch (err) {
-    setReplyFeedback((previous) => ({
-      ...previous,
-      [reference]: {
-        success: false,
-        message:
-          err instanceof Error ? err.message : "Unable to send reply.",
-      },
-    }));
-  } finally {
-    setSendingReference("");
   }
-}
 
- 
-async function updateStatus(reference: string, status: string) {
-  setError("");
+  async function updateStatus(reference: string, status: string) {
+    setError("");
 
-  try {
-    const response = await fetch(
-      `/api/admin/requests/${encodeURIComponent(reference)}`,
-      {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      },
-    );
+    try {
+      const response = await fetch(
+        `/api/admin/requests/${encodeURIComponent(reference)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        },
+      );
 
-    if (response.status === 401) {
-      window.location.href = "/admin/login";
-      return;
+      if (response.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update status.");
+      }
+
+      setRequests((previous) =>
+        previous.map((request) =>
+          request.reference === reference ? { ...request, status } : request,
+        ),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update status.");
     }
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to update status.");
-    }
-
-    // Update only the changed request.
-    setRequests((previous) =>
-      previous.map((request) =>
-        request.reference === reference
-          ? { ...request, status }
-          : request,
-      ),
-    );
-  } catch (err) {
-    setError(
-      err instanceof Error ? err.message : "Unable to update status.",
-    );
   }
-}
 
   async function handleLogout() {
     setError("");
@@ -270,9 +262,9 @@ async function updateStatus(reference: string, status: string) {
   }
 
   return (
-   <main className="min-h-screen w-full min-w-0 bg-[#101114] px-4 py-6 text-[#f5f5f5] sm:px-6 lg:px-8">
-<div className="w-full max-w-none">
-          {/* Header */}
+    <main className="min-h-screen w-full min-w-0 bg-[#101114] px-4 py-6 text-[#f5f5f5] sm:px-6 lg:px-8">
+      <div className="w-full max-w-none">
+        {/* Header */}
         <header className="flex flex-col gap-5 border-b border-white/10 pb-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <a href="/" aria-label="Dugsiiye home" className="shrink-0">
@@ -434,151 +426,155 @@ async function updateStatus(reference: string, status: string) {
             </div>
           ) : !error ? (
             <div className="overflow-x-auto">
-             
-<table className="w-full table-fixed text-left text-xs">
- <thead className="border-b border-white/10 bg-[#202127] text-slate-400">
-  <tr>
-    <th className="px-5 py-4 font-medium">Reference</th>
-    <th className="px-5 py-4 font-medium">Student</th>
-    <th className="px-5 py-4 font-medium">Category</th>
-    <th className="px-5 py-4 font-medium">Description</th>
-    <th className="px-5 py-4 font-medium">Status</th>
-    <th className="px-5 py-4 font-medium">Update status</th>
-    <th className="px-5 py-4 font-medium">Reply to student</th>
-    <th className="px-5 py-4 font-medium">Submitted</th>
-  </tr>
-</thead>
+              <table className="w-full table-fixed text-left text-xs">
+                <thead className="border-b border-white/10 bg-[#202127] text-slate-400">
+                  <tr>
+                    <th className="px-5 py-4 font-medium">Reference</th>
+                    <th className="px-5 py-4 font-medium">Student</th>
+                    <th className="px-5 py-4 font-medium">Category</th>
+                    <th className="px-5 py-4 font-medium">Description</th>
+                    <th className="px-5 py-4 font-medium">Status</th>
+                    <th className="px-5 py-4 font-medium">Update status</th>
+                    <th className="px-5 py-4 font-medium">Reply to student</th>
+                    <th className="px-5 py-4 font-medium">Submitted</th>
+                  </tr>
+                </thead>
 
-  <tbody className="divide-y divide-white/[0.07]">
-    {filteredRequests.map((request) => (
-      <tr
-        key={request.reference}
-        className="transition hover:bg-white/[0.025]"
-      >
-        <td className="whitespace-nowrap px-5 py-4 font-semibold text-emerald-300">
-          {request.reference}
-        </td>
+                <tbody className="divide-y divide-white/[0.07]">
+                  {filteredRequests.map((request) => (
+                    <tr
+                      key={request.reference}
+                      className="transition hover:bg-white/[0.025]"
+                    >
+                      <td className="whitespace-nowrap px-5 py-4 font-semibold text-emerald-300">
+                        {request.reference}
+                      </td>
 
-        <td className="px-5 py-4">
-          <p className="font-medium text-slate-100">{request.name}</p>
-          <p className="mt-1 text-xs text-slate-400">{request.email}</p>
-        </td>
+                      <td className="px-5 py-4">
+                        <p className="font-medium text-slate-100">
+                          {request.name}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {request.email}
+                        </p>
+                      </td>
 
-        <td className="px-5 py-4 capitalize text-slate-300">
-          {request.category.replace(/[-_]/g, " ")}
-        </td>
+                      <td className="px-5 py-4 capitalize text-slate-300">
+                        {request.category.replace(/[-_]/g, " ")}
+                      </td>
 
-        <td className="max-w-xs px-5 py-4">
-          <p className="whitespace-normal break-words leading-6 text-slate-300">
-            {request.description || "No description provided."}
-          </p>
-        </td>
+                      <td className="max-w-xs px-5 py-4">
+                        <p className="whitespace-normal break-words leading-6 text-slate-300">
+                          {request.description || "No description provided."}
+                        </p>
+                      </td>
 
-       {/* Status */}
-        <td className="px-5 py-4">
-          <span
-            className={`inline-flex whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium capitalize ${statusStyle(
-              request.status,
-            )}`}
-          >
-            {request.status.replace(/[-_]/g, " ")}
-          </span>
-        </td>
+                      {/* Status */}
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium capitalize ${statusStyle(
+                            request.status,
+                          )}`}
+                        >
+                          {request.status.replace(/[-_]/g, " ")}
+                        </span>
+                      </td>
 
-        {/* Update status */}
-        <td className="px-5 py-4">
-          <select
-            aria-label={`Update status for ${request.reference}`}
-            value={request.status}
-            onChange={(event) =>
-              void updateStatus(request.reference, event.target.value)
-            }
-            className="rounded-xl border border-white/10 bg-[#202127] px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/60"
-          >
-            <option value="open">Open</option>
-            <option value="in progress">In progress</option>
-            <option value="resolved">Resolved</option>
-          </select>
-        </td>
+                      {/* Update status */}
+                      <td className="px-5 py-4">
+                        <select
+                          aria-label={`Update status for ${request.reference}`}
+                          value={request.status}
+                          onChange={(event) =>
+                            void updateStatus(
+                              request.reference,
+                              event.target.value,
+                            )
+                          }
+                          className="rounded-xl border border-white/10 bg-[#202127] px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/60"
+                        >
+                          <option value="open">Open</option>
+                          <option value="in progress">In progress</option>
+                          <option value="resolved">Resolved</option>
+                        </select>
+                      </td>
 
-        {/* Reply to student */}
-        <td className="min-w-[300px] px-5 py-4">
-          <div className="space-y-3">
-            {request.replies && request.replies.length > 0 && (
-              <div className="space-y-2">
-                {request.replies.map((reply, index) => (
-                  <div
-                    key={`${request.reference}-reply-${index}`}
-                    className="rounded-lg border border-white/10 bg-[#202127] p-3"
-                  >
-                    <p className="whitespace-pre-wrap break-words text-sm text-slate-200">
-                      {reply.message}
-                    </p>
-                    <p className="mt-2 text-xs text-slate-500">
-                      Admin · {dateLabel(reply.createdAt)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
+                      {/* Reply to student */}
+                      <td className="min-w-75 px-5 py-4">
+                        <div className="space-y-3">
+                          {request.replies && request.replies.length > 0 && (
+                            <div className="space-y-2">
+                              {request.replies.map((reply, index) => (
+                                <div
+                                  key={`${request.reference}-reply-${index}`}
+                                  className="rounded-lg border border-white/10 bg-[#202127] p-3"
+                                >
+                                  <p className="whitespace-pre-wrap wrap-break-word text-sm text-slate-200">
+                                    {reply.message}
+                                  </p>
+                                  <p className="mt-2 text-xs text-slate-500">
+                                    Admin · {dateLabel(reply.createdAt)}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
 
-            <textarea
-              value={replyDrafts[request.reference] || ""}
-              onChange={(event) =>
-                setReplyDrafts((previous) => ({
-                  ...previous,
-                  [request.reference]: event.target.value,
-                }))
-              }
-              placeholder="Write a reply to this student..."
-              maxLength={5000}
-              rows={3}
-              aria-label={`Reply to ${request.reference}`}
-              className="w-full rounded-xl border border-white/10 bg-[#202127] p-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
-            />
+                          <textarea
+                            value={replyDrafts[request.reference] || ""}
+                            onChange={(event) =>
+                              setReplyDrafts((previous) => ({
+                                ...previous,
+                                [request.reference]: event.target.value,
+                              }))
+                            }
+                            placeholder="Write a reply to this student..."
+                            maxLength={5000}
+                            rows={3}
+                            aria-label={`Reply to ${request.reference}`}
+                            className="w-full rounded-xl border border-white/10 bg-[#202127] p-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
+                          />
 
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-slate-500">
-                {(replyDrafts[request.reference] || "").length}/5000
-              </span>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs text-slate-500">
+                              {(replyDrafts[request.reference] || "").length}
+                              /5000
+                            </span>
 
-              <button
-                type="button"
-                onClick={() => void sendReply(request.reference)}
-                disabled={sendingReference === request.reference}
-                className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-[#101114] transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {sendingReference === request.reference
-                  ? "Sending..."
-                  : "Send reply"}
-              </button>
-            </div>
+                            <button
+                              type="button"
+                              onClick={() => void sendReply(request.reference)}
+                              disabled={sendingReference === request.reference}
+                              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-[#101114] transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {sendingReference === request.reference
+                                ? "Sending..."
+                                : "Send reply"}
+                            </button>
+                          </div>
 
-            {replyFeedback[request.reference] && (
-              <p
-                role="status"
-                className={`text-xs ${
-                  replyFeedback[request.reference].success
-                    ? "text-emerald-300"
-                    : "text-red-300"
-                }`}
-              >
-                {replyFeedback[request.reference].message}
-              </p>
-            )}
-          </div>
-        </td>
-          {/* Submitted */}
-        <td className="whitespace-nowrap px-5 py-4 text-slate-400">
-          {dateLabel(request.createdAt)}
-        </td>
-
-       
-      </tr>
-    ))}
-  </tbody>
-</table>
-
+                          {replyFeedback[request.reference] && (
+                            <p
+                              role="status"
+                              className={`text-xs ${
+                                replyFeedback[request.reference].success
+                                  ? "text-emerald-300"
+                                  : "text-red-300"
+                              }`}
+                            >
+                              {replyFeedback[request.reference].message}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      {/* Submitted */}
+                      <td className="whitespace-nowrap px-5 py-4 text-slate-400">
+                        {dateLabel(request.createdAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : null}
 

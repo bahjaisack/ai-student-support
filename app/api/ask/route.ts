@@ -1,4 +1,3 @@
-
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText } from "ai";
 import clientPromise from "@/lib/mongodb";
@@ -18,15 +17,13 @@ export async function POST(request: Request) {
     ) {
       return Response.json(
         { error: "Please provide a valid message." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // 1. Connect to MongoDB
     const client = await clientPromise;
     const db = client.db("dugsiiye_support");
 
-    // 2. Retrieve verified FAQs
     const faqs = await db
       .collection("faqs")
       .find(
@@ -38,12 +35,11 @@ export async function POST(request: Request) {
             answer: 1,
             category: 1,
           },
-        }
+        },
       )
       .limit(30)
       .toArray();
 
-    // 3. Retrieve verified courses
     const courses = await db
       .collection("courses")
       .find(
@@ -55,15 +51,12 @@ export async function POST(request: Request) {
             description: 1,
             category: 1,
           },
-        }
+        },
       )
       .limit(30)
       .toArray();
 
-    // 4. Prepare information for the AI
     const knowledge = JSON.stringify({ faqs, courses });
-
-    // 5. Ask the AI using verified database information
     const result = await generateText({
       model: openrouter("openrouter/free"),
       system: `You are the Dugsiiye Student Support Assistant.
@@ -109,7 +102,7 @@ VERIFIED DATABASE INFORMATION:
 
     return Response.json(
       { error: "The AI assistant is temporarily unavailable." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

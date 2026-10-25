@@ -147,7 +147,7 @@ export default function Home() {
           <section
             id="ai-chat"
             aria-label="AI student support chat"
-            className="flex min-h-[480px] flex-col rounded-2xl border border-white/10 bg-[#17181d] p-4 sm:p-6"
+            className="flex min-h-120 flex-col rounded-2xl border border-white/10 bg-[#17181d] p-4 sm:p-6"
           >
             {/* Chat header */}
             <div className="mb-5 flex items-center gap-3 border-b border-white/10 pb-4">
